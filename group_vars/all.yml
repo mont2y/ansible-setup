@@ -32,10 +32,6 @@ restore_bitwarden_secrets: true
 bitwarden_secrets_required: false
 bitwarden_overwrite_existing_secrets: false
 restore_rclone_from_bitwarden: true
-restore_syncthing_from_bitwarden: true
-syncthing_recovery_allow_paths_outside_home: false
-syncthing_recovery_allow_nonempty_new_folders: false
-syncthing_recovery_wait_seconds: 30
 bitwarden_cli_install_method: auto
 bitwarden_cli_version: '2026.9.0'
 espanso_backend: auto

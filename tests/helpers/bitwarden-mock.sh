@@ -25,10 +25,6 @@ case "$1" in
         cat "$BW_TEST_DIR/items.json" ;;
     get)
         [[ "${BW_TEST_SCENARIO:-}" != get-failure ]] || exit 1
-        if [[ "$2" == item && "$3" == 22222222-2222-2222-2222-222222222222 && -n "${BW_TEST_SYNCTHING_FILE:-}" ]]; then
-            cat "$BW_TEST_SYNCTHING_FILE"
-            exit
-        fi
         [[ "$2" == item && "$3" == 11111111-1111-1111-1111-111111111111 ]] || exit 1
         cat "$BW_TEST_DIR/item.json" ;;
     *) exit 1 ;;

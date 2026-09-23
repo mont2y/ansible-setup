@@ -12,7 +12,6 @@ fi
 source "$ROOT_DIR/lib/common.sh"
 source "$ROOT_DIR/lib/bitwarden.sh"
 RESTORE_BITWARDEN_SECRETS=false
-RESTORE_SYNCTHING_FROM_BITWARDEN=false
 source "$ROOT_DIR/files/helpers/restore-module.sh"
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 export BW_TEST_DIR="$HOME/mock"

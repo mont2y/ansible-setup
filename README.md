@@ -1,6 +1,6 @@
 # Ansible Linux workstation setup
 
-An Ansible conversion of [mont2y/test-setup](https://github.com/mont2y/test-setup) at commit `bc0a6016fa44e9bd2ed04167b9b83224fe60621b`. This repository configures a local Ubuntu/Debian, Fedora, or Arch/CachyOS/Omarchy workstation. Its default settings mirror the original Bash project.
+An Ansible conversion of [mont2y/test-setup](https://github.com/mont2y/test-setup) at commit `bc0a6016fa44e9bd2ed04167b9b83224fe60621b`. This repository configures a local Ubuntu/Debian, Fedora, or Arch/CachyOS/Omarchy workstation. Its default settings are based on the original Bash project; Syncthing is installed without recovery or configuration management.
 
 > **Before running:** Most components are enabled by default. Review [`group_vars/all.yml`](group_vars/all.yml): the full playbook updates the OS and installs Docker, desktop applications, virtualization, and an OpenSSH server. Run it as your normal user in a graphical login session, not with `sudo ansible-playbook`.
 
@@ -82,20 +82,17 @@ Add `-e "@$HOME/.config/ansible-setup/local.yml"` to the second command if you c
 
 After it finishes, log out and back in so your new default shell and Docker/libvirt/KVM group memberships apply.
 
-## Restore Bitwarden secrets and Syncthing topology
+## Restore rclone configuration from Bitwarden
 
 The initial command skips the `secrets` role so you can sign in to Bitwarden deliberately. If your vault has the required items, run this **in a terminal on the new device** from the repository directory:
 
 ```bash
 env BITWARDEN_SECRETS_REQUIRED=true \
     RESTORE_RCLONE_FROM_BITWARDEN=true \
-    RESTORE_SYNCTHING_FROM_BITWARDEN=true \
     ./scripts/restore-secrets.sh
 ```
 
-The script can prompt for Bitwarden login or unlock. The required Secure Notes are named `Linux Setup - rclone.conf` and `Linux Setup - Syncthing Recovery`. See [`files/syncthing/recovery.example.json`](files/syncthing/recovery.example.json) for the recovery format. If you want to restore only rclone, set `RESTORE_SYNCTHING_FROM_BITWARDEN=false` in this command.
-
-**Set `RESTORE_SYNCTHING_FROM_BITWARDEN=true` for the standalone script.** That setting is enabled in Ansible's YAML defaults, but a directly executed shell script does not read `group_vars/all.yml`. The script prints the local Syncthing Device ID and commands to run on existing peers. Accept the new device on each peer before expecting folders to sync. It does not copy Syncthing keys, certificates, configuration, or databases from another machine.
+The script can prompt for Bitwarden login or unlock. Store the rclone configuration in a Secure Note named `Linux Setup - rclone.conf`.
 
 Alternatively, unlock Bitwarden in the same shell and invoke the Ansible restoration playbook:
 
@@ -107,9 +104,9 @@ bw lock
 unset BW_SESSION
 ```
 
-Ansible suppresses the entire restoration task output with `no_log`, including peer instructions. Use the standalone script when you need to see those instructions. In fish, use `set -x BW_SESSION (bw unlock --raw)` and `set -e BW_SESSION` instead of Bash's `export` and `unset` syntax.
+Ansible suppresses the entire restoration task output with `no_log`. In fish, use `set -x BW_SESSION (bw unlock --raw)` and `set -e BW_SESSION` instead of Bash's `export` and `unset` syntax.
 
-Never store your vault session, master password, `rclone.conf` contents, or Syncthing identity files in this repository. Do not run secret restoration with shell tracing or Ansible `--diff` or verbose output.
+Never store your vault session, master password, or `rclone.conf` contents in this repository. Do not run secret restoration with shell tracing or Ansible `--diff` or verbose output.
 
 ## Run selected components or rerun later
 
@@ -138,11 +135,13 @@ To fetch changes from GitHub, run `git pull --ff-only` in the checkout first. If
 | `bitwarden` | Bitwarden CLI/Desktop and `with-bitwarden-secret` wrapper |
 | `virtualization` | QEMU, KVM, libvirt, virt-manager, default NAT network |
 | `legion` | Lenovo-only dependencies, headers, DKMS, pipx tools, Secure Boot status |
-| `secrets` | Bitwarden-backed rclone restoration and additive Syncthing recovery |
+| `secrets` | Bitwarden-backed rclone restoration |
 | `services` | OpenSSH server and optional Codex CLI |
 | `aur` | paru and selected AUR packages on Arch-based distributions |
 
-Ordinary package lists live in [`vars/packages.yml`](vars/packages.yml). Specialized Bitwarden and Syncthing validation remains in small Bash/JQ helpers because it enforces file safety, vault session isolation, Device ID checksums, folder path preflight, and additive topology changes.
+Ordinary package lists live in [`vars/packages.yml`](vars/packages.yml). Bitwarden Bash/jq helpers enforce secret-file safety and vault session isolation.
+
+`install_syncthing: true` installs Syncthing, starts its user service in the background, and enables it for future boots. It also enables systemd lingering for your account so user services can start before login and keep running after logout. Configure Syncthing devices and folders yourself; the project does not restore its secrets or topology.
 
 ## Checks and practical limits
 
@@ -152,7 +151,6 @@ Ordinary package lists live in [`vars/packages.yml`](vars/packages.yml). Special
 python3 tests/check-project.py
 bash tests/test-bitwarden.sh
 bash tests/test-secrets.sh
-bash tests/test-syncthing-recovery.sh
 ```
 
-The conversion passed syntax checks and adapted mock tests, but it has not been run end to end on every supported distribution. Ansible check mode cannot fully simulate NVM, AUR builds, DKMS, Bitwarden, or Syncthing CLI operations. The user systemd manager must be available for Syncthing. Some upstream Postman, Espanso, and font downloads follow the original project's URLs without pinned digests.
+The conversion passed syntax checks and adapted mock tests, but it has not been run end to end on every supported distribution. Ansible check mode cannot fully simulate NVM, AUR builds, DKMS, or Bitwarden operations. Some upstream Postman, Espanso, and font downloads follow the original project's URLs without pinned digests.

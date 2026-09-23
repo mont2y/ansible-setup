@@ -2,14 +2,13 @@
 
 # shellcheck source=../lib/bitwarden.sh
 source "$ROOT_DIR/lib/bitwarden.sh"
-source "$ROOT_DIR/lib/syncthing-recovery.sh"
 
 # Application mappings stay here; the library only knows generic vault/files.
 # Both install.sh and restore-secrets.sh use this same function and policy.
 restore_bitwarden_secrets() (
     local status=0
     [[ $- != *x* ]] || { bitwarden_error 'Bitwarden secret access refuses shell tracing'; return 1; }
-    if [[ "${RESTORE_RCLONE_FROM_BITWARDEN:-true}" != true && "${RESTORE_SYNCTHING_FROM_BITWARDEN:-false}" != true ]]; then
+    if [[ "${RESTORE_RCLONE_FROM_BITWARDEN:-true}" != true ]]; then
         return 0
     fi
     bitwarden_guard || return 1
@@ -26,9 +25,6 @@ restore_bitwarden_secrets() (
         else
             status=1
         fi
-    fi
-    if [[ "${RESTORE_SYNCTHING_FROM_BITWARDEN:-false}" == true ]]; then
-        syncthing_recovery_restore || status=1
     fi
     return "$status"
 )

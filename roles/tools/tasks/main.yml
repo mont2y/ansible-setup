@@ -10,22 +10,28 @@
     state: present
   become: true
   when: install_syncthing
-- name: Prepare a fresh Syncthing identity without a default folder
+- name: Allow user services to run at boot and after logout
   ansible.builtin.command:
-    argv: [bash, '{{ playbook_dir }}/scripts/prepare-syncthing.sh']
-  environment:
-    XDG_RUNTIME_DIR: '/run/user/{{ ansible_facts["user_uid"] }}'
-  failed_when: false
-  when: install_syncthing and restore_bitwarden_secrets and restore_syncthing_from_bitwarden and not ansible_check_mode
-- name: Enable Syncthing user service
+    argv: [loginctl, enable-linger, '{{ setup_user }}']
+    creates: '/var/lib/systemd/linger/{{ setup_user }}'
+  become: true
+  when: install_syncthing
+- name: Ensure the user service manager is running
+  ansible.builtin.systemd_service:
+    name: 'user@{{ ansible_facts["user_uid"] }}.service'
+    state: started
+  become: true
+  when: install_syncthing and not ansible_check_mode
+- name: Start and enable Syncthing in the background
   ansible.builtin.systemd_service:
     name: syncthing.service
     scope: user
+    daemon_reload: true
     enabled: true
     state: started
   environment:
     XDG_RUNTIME_DIR: '/run/user/{{ ansible_facts["user_uid"] }}'
-  when: install_syncthing and not (restore_bitwarden_secrets and restore_syncthing_from_bitwarden) and not ansible_check_mode
+  when: install_syncthing and not ansible_check_mode
 - name: Install Solaar
   ansible.builtin.package:
     name: solaar

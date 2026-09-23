@@ -12,7 +12,14 @@ source = (root.parent / 'source/settings.sh')
 if source.exists():
     import re
     expected = {key.lower() for key in re.findall(r'^([A-Z][A-Z_]+)=', source.read_text(), re.M)}
-    missing = expected - settings.keys()
+    # Syncthing recovery was intentionally removed; installation remains supported.
+    retired = {
+        'restore_syncthing_from_bitwarden',
+        'syncthing_recovery_allow_paths_outside_home',
+        'syncthing_recovery_allow_nonempty_new_folders',
+        'syncthing_recovery_wait_seconds',
+    }
+    missing = expected - retired - settings.keys()
     assert not missing, f'Missing settings: {sorted(missing)}'
 packages = yaml.safe_load((root / 'vars/packages.yml').read_text())['setup_packages']
 assert all(isinstance(p, list) for p in packages.values())
