@@ -35,7 +35,7 @@
   when: install_wezterm and wezterm_remote is not skipped and wezterm_remote.rc == 0 and wezterm_remote.stdout | regex_replace('\\.git$', '') == wezterm_config_repo | regex_replace('\\.git$', '')
 - name: Back up unrelated WezTerm config
   ansible.builtin.command:
-    argv: [mv, '{{ setup_home }}/.config/wezterm', '{{ setup_home }}/.config/wezterm.backup.{{ ansible_date_time.iso8601_basic_short }}']
+    argv: [mv, '{{ setup_home }}/.config/wezterm', '{{ setup_home }}/.config/wezterm.backup.{{ ansible_facts["date_time"]["iso8601_basic_short"] }}']
   when: install_wezterm and wezterm_path.stat.exists and (wezterm_remote is skipped or wezterm_remote.rc != 0 or wezterm_remote.stdout | regex_replace('\\.git$', '') != wezterm_config_repo | regex_replace('\\.git$', ''))
 - name: Clone or update clean WezTerm config
   ansible.builtin.git:

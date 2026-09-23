@@ -6,7 +6,7 @@
   pre_tasks:
     - name: Require a normal account
       ansible.builtin.assert:
-        that: ansible_user_id != 'root'
+        that: ansible_facts['user_id'] != 'root'
         fail_msg: Run as your normal user and supply -K for sudo.
       tags: always
     - name: Determine distro family and account home
@@ -16,7 +16,7 @@
              'fedora' if ansible_facts['distribution'] == 'Fedora' else
              'arch' if ansible_facts['distribution'] in ['Archlinux', 'CachyOS', 'Omarchy'] or ansible_facts['os_family'] == 'Archlinux' else 'unsupported' }}
         setup_home: "{{ ansible_facts['user_dir'] }}"
-        setup_user: "{{ ansible_user_id }}"
+        setup_user: "{{ ansible_facts['user_id'] }}"
       tags: always
     - name: Refuse unsupported systems
       ansible.builtin.assert:

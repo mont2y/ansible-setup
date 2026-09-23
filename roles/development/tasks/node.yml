@@ -6,23 +6,27 @@
     update: false
 - name: Inspect current Node LTS alias
   ansible.builtin.shell: |
-    source "{{ setup_home }}/.nvm/nvm.sh"
+    source "{{ setup_home }}/.nvm/nvm.sh" --no-use || exit $?
     nvm version 'lts/*'
   args:
     executable: /bin/bash
   register: existing_node_lts
   changed_when: false
+  # NVM reports an absent LTS installation as N/A with exit status 3.
+  failed_when: >-
+    existing_node_lts.rc != 0 and
+    not (existing_node_lts.rc == 3 and existing_node_lts.stdout == 'N/A')
 - name: Install Node LTS
   ansible.builtin.shell: |
-    source "{{ setup_home }}/.nvm/nvm.sh"
-    nvm install --lts
+    source "{{ setup_home }}/.nvm/nvm.sh" --no-use || exit $?
+    nvm install --lts || exit $?
     nvm alias default 'lts/*'
   args:
     executable: /bin/bash
   when: existing_node_lts.stdout == 'N/A' and not ansible_check_mode
 - name: Set default to installed LTS
   ansible.builtin.shell: |
-    source "{{ setup_home }}/.nvm/nvm.sh"
+    source "{{ setup_home }}/.nvm/nvm.sh" --no-use || exit $?
     nvm alias default 'lts/*'
   args:
     executable: /bin/bash

@@ -10,13 +10,13 @@
   changed_when: false
   failed_when: false
   environment:
-    PATH: '{{ setup_home }}/.local/bin:{{ ansible_env.PATH }}'
+    PATH: '{{ setup_home }}/.local/bin:{{ ansible_facts["env"]["PATH"] }}'
   when: install_bitwarden_cli
 - name: Install Bitwarden CLI using verified upstream archive or npm
   ansible.builtin.command:
     argv: [bash, '{{ playbook_dir }}/scripts/install-bitwarden.sh']
   environment:
-    PATH: '{{ setup_home }}/.local/bin:{{ ansible_env.PATH }}'
+    PATH: '{{ setup_home }}/.local/bin:{{ ansible_facts["env"]["PATH"] }}'
     FAMILY: '{{ setup_family }}'
     INSTALL_BITWARDEN_CLI: 'true'
     INSTALL_BITWARDEN_DESKTOP: 'false'

@@ -33,7 +33,7 @@
   when: install_zsh
 - name: Back up unrelated Zsh config
   ansible.builtin.command:
-    argv: [mv, '{{ setup_home }}/.zshrc', '{{ setup_home }}/.zshrc.backup.{{ ansible_date_time.iso8601_basic_short }}']
+    argv: [mv, '{{ setup_home }}/.zshrc', '{{ setup_home }}/.zshrc.backup.{{ ansible_facts["date_time"]["iso8601_basic_short"] }}']
   when: install_zsh and setup_zshrc.stat.exists and (not setup_zshrc.stat.islnk or setup_zshrc.stat.lnk_source | default('') != playbook_dir + '/files/zsh/.zshrc')
 - name: Link tracked Zsh config
   ansible.builtin.file:
