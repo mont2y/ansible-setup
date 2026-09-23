@@ -1,0 +1,23 @@
+- name: Create Microsoft key directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  become: true
+- name: Download Microsoft apt key
+  ansible.builtin.get_url:
+    url: https://packages.microsoft.com/keys/microsoft.asc
+    dest: /etc/apt/keyrings/microsoft.asc
+    mode: '0644'
+  become: true
+- name: Configure VS Code apt repository
+  ansible.builtin.apt_repository:
+    repo: 'deb [arch={{ ansible_facts["architecture"] | replace("x86_64", "amd64") | replace("aarch64", "arm64") }} signed-by=/etc/apt/keyrings/microsoft.asc] https://packages.microsoft.com/repos/code stable main'
+    filename: vscode
+    state: present
+  become: true
+- name: Install VS Code
+  ansible.builtin.apt:
+    name: code
+    state: present
+  become: true

@@ -1,0 +1,33 @@
+- name: Find paru
+  ansible.builtin.command: which paru
+  register: paru_present
+  changed_when: false
+  failed_when: false
+- name: Require consent to install paru
+  ansible.builtin.assert:
+    that: allow_install_paru
+    fail_msg: paru is missing and allow_install_paru is false.
+  when: paru_present.rc != 0
+- name: Install AUR build tools
+  community.general.pacman:
+    name: [git, base-devel]
+    state: present
+  become: true
+  when: paru_present.rc != 0
+- name: Create paru source parent
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.cache/test-setup-ansible'
+    state: directory
+    mode: '0755'
+  when: paru_present.rc != 0
+- name: Clone paru build recipe
+  ansible.builtin.git:
+    repo: https://aur.archlinux.org/paru.git
+    dest: '{{ setup_home }}/.cache/test-setup-ansible/paru'
+    update: false
+  when: paru_present.rc != 0
+- name: Build and install paru as normal user
+  ansible.builtin.command:
+    argv: [makepkg, -si, --noconfirm]
+    chdir: '{{ setup_home }}/.cache/test-setup-ansible/paru'
+  when: paru_present.rc != 0 and not ansible_check_mode

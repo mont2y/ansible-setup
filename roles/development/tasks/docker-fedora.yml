@@ -1,0 +1,11 @@
+- name: Install Fedora Docker repository
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/fedora/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: '0644'
+  become: true
+- name: Install Docker Engine and plugins
+  ansible.builtin.dnf:
+    name: [docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin]
+    state: present
+  become: true

@@ -1,0 +1,50 @@
+- name: Install Wayland Espanso build dependencies
+  community.general.pacman:
+    name: '{{ setup_packages.espanso_build_arch }}'
+    state: present
+  become: true
+  when: setup_espanso_session == 'wayland'
+- name: Fetch Espanso source for Wayland
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.local/src'
+    state: directory
+    mode: '0755'
+  when: setup_espanso_session == 'wayland'
+- name: Fetch Espanso source for Wayland
+  ansible.builtin.git:
+    repo: https://github.com/espanso/espanso.git
+    dest: '{{ setup_home }}/.local/src/espanso'
+    update: false
+  when: setup_espanso_session == 'wayland'
+- name: Build Espanso Wayland binary
+  ansible.builtin.command:
+    argv: [cargo, build, -p, espanso, --release, --no-default-features, --features, 'modulo,vendored-tls,wayland']
+    chdir: '{{ setup_home }}/.local/src/espanso'
+    creates: '{{ setup_home }}/.local/src/espanso/target/release/espanso'
+  when: setup_espanso_session == 'wayland'
+- name: Install built Espanso
+  ansible.builtin.copy:
+    src: '{{ setup_home }}/.local/src/espanso/target/release/espanso'
+    dest: /usr/local/bin/espanso
+    mode: '0755'
+    remote_src: true
+  become: true
+  when: setup_espanso_session == 'wayland'
+- name: Create Espanso X11 directory
+  ansible.builtin.file:
+    path: '{{ setup_home }}/opt'
+    state: directory
+    mode: '0755'
+  when: setup_espanso_session == 'x11'
+- name: Download Espanso X11 AppImage
+  ansible.builtin.get_url:
+    url: https://github.com/espanso/espanso/releases/latest/download/Espanso-X11.AppImage
+    dest: '{{ setup_home }}/opt/Espanso.AppImage'
+    mode: '0755'
+  when: setup_espanso_session == 'x11'
+- name: Register Espanso X11 executable
+  ansible.builtin.command:
+    argv: ['{{ setup_home }}/opt/Espanso.AppImage', env-path, register]
+    creates: /usr/local/bin/espanso
+  become: true
+  when: setup_espanso_session == 'x11'

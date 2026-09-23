@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "devices": [
+    {
+      "alias": "primary",
+      "deviceID": "AAAAAAA-BBBBBBB-CCCCCCC-DDDDDDD-EEEEEEE-FFFFFFF-GGGGGGG-HHHHHHH",
+      "name": "Primary PC",
+      "introducer": false
+    }
+  ],
+  "folders": [
+    {
+      "id": "example-folder",
+      "label": "Example",
+      "path": "{HOME}/Sync/example",
+      "type": "sendreceive",
+      "devices": ["primary"]
+    }
+  ]
+}

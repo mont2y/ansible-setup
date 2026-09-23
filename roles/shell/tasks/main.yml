@@ -1,0 +1,49 @@
+- name: Install Zsh
+  ansible.builtin.package:
+    name: zsh
+    state: present
+  become: true
+  when: install_zsh
+- name: Find Zsh executable
+  ansible.builtin.command: which zsh
+  register: setup_zsh_path
+  changed_when: false
+  when: install_zsh
+- name: Add Zsh to permitted login shells
+  ansible.builtin.lineinfile:
+    path: /etc/shells
+    line: "{{ setup_zsh_path.stdout }}"
+  become: true
+  when: install_zsh
+- name: Install Oh My Zsh and plugins
+  ansible.builtin.git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+    update: false
+  loop:
+    - { repo: 'https://github.com/ohmyzsh/ohmyzsh.git', dest: '{{ setup_home }}/.oh-my-zsh' }
+    - { repo: 'https://github.com/zsh-users/zsh-autosuggestions.git', dest: '{{ setup_home }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions' }
+    - { repo: 'https://github.com/zsh-users/zsh-completions.git', dest: '{{ setup_home }}/.oh-my-zsh/custom/plugins/zsh-completions' }
+  when: install_zsh
+- name: Inspect existing Zsh config
+  ansible.builtin.stat:
+    path: "{{ setup_home }}/.zshrc"
+    follow: false
+  register: setup_zshrc
+  when: install_zsh
+- name: Back up unrelated Zsh config
+  ansible.builtin.command:
+    argv: [mv, '{{ setup_home }}/.zshrc', '{{ setup_home }}/.zshrc.backup.{{ ansible_date_time.iso8601_basic_short }}']
+  when: install_zsh and setup_zshrc.stat.exists and (not setup_zshrc.stat.islnk or setup_zshrc.stat.lnk_source | default('') != playbook_dir + '/files/zsh/.zshrc')
+- name: Link tracked Zsh config
+  ansible.builtin.file:
+    src: '{{ playbook_dir }}/files/zsh/.zshrc'
+    dest: '{{ setup_home }}/.zshrc'
+    state: link
+  when: install_zsh
+- name: Set login shell
+  ansible.builtin.user:
+    name: '{{ setup_user }}'
+    shell: '{{ setup_zsh_path.stdout }}'
+  become: true
+  when: install_zsh

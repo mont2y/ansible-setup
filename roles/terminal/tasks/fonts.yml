@@ -1,0 +1,55 @@
+- name: Check fontconfig families
+  ansible.builtin.command:
+    argv: [fc-match, '-f', '%{family}', '{{ item }}']
+  loop: ['JetBrains Mono', 'Symbols Nerd Font Mono']
+  register: wezterm_font_match
+  changed_when: false
+  check_mode: false
+- name: Check fallback font markers
+  ansible.builtin.stat:
+    path: '{{ setup_home }}/.local/share/fonts/{{ item.directory }}/{{ item.marker }}'
+  loop:
+    - { directory: jetbrains-mono, marker: fonts/ttf/JetBrainsMono-Regular.ttf }
+    - { directory: symbols-nerd-font-mono, marker: SymbolsNerdFontMono-Regular.ttf }
+  register: wezterm_font_marker
+- name: Create font cache directory
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.cache/test-setup-ansible/fonts'
+    state: directory
+    mode: '0755'
+- name: Download missing upstream font archives
+  ansible.builtin.get_url:
+    url: '{{ item.url }}'
+    dest: '{{ setup_home }}/.cache/test-setup-ansible/fonts/{{ item.archive }}'
+    mode: '0644'
+  loop:
+    - { url: 'https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip', archive: 'JetBrainsMono-2.304.zip', family: 'JetBrains Mono', index: 0 }
+    - { url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/NerdFontsSymbolsOnly.zip', archive: 'NerdFontsSymbolsOnly-v3.4.0.zip', family: 'Symbols Nerd Font Mono', index: 1 }
+  when: item.family not in (wezterm_font_match.results[item.index].stdout | regex_findall('[^,]+') | map('trim') | list) and not wezterm_font_marker.results[item.index].stat.exists
+- name: Create user font directories
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.local/share/fonts/{{ item }}'
+    state: directory
+    mode: '0755'
+  loop: [jetbrains-mono, symbols-nerd-font-mono]
+- name: Extract JetBrains Mono fallback
+  ansible.builtin.unarchive:
+    src: '{{ setup_home }}/.cache/test-setup-ansible/fonts/JetBrainsMono-2.304.zip'
+    dest: '{{ setup_home }}/.local/share/fonts/jetbrains-mono'
+    remote_src: true
+    include: ['fonts/ttf/*.ttf']
+    creates: '{{ setup_home }}/.local/share/fonts/jetbrains-mono/fonts/ttf/JetBrainsMono-Regular.ttf'
+  register: jetbrains_font
+  when: "'JetBrains Mono' not in (wezterm_font_match.results[0].stdout | regex_findall('[^,]+') | map('trim') | list) and not wezterm_font_marker.results[0].stat.exists"
+- name: Extract Symbols Nerd Font fallback
+  ansible.builtin.unarchive:
+    src: '{{ setup_home }}/.cache/test-setup-ansible/fonts/NerdFontsSymbolsOnly-v3.4.0.zip'
+    dest: '{{ setup_home }}/.local/share/fonts/symbols-nerd-font-mono'
+    remote_src: true
+    include: ['SymbolsNerdFontMono-Regular.ttf']
+    creates: '{{ setup_home }}/.local/share/fonts/symbols-nerd-font-mono/SymbolsNerdFontMono-Regular.ttf'
+  register: symbols_font
+  when: "'Symbols Nerd Font Mono' not in (wezterm_font_match.results[1].stdout | regex_findall('[^,]+') | map('trim') | list) and not wezterm_font_marker.results[1].stat.exists"
+- name: Refresh font cache after changes
+  ansible.builtin.command: fc-cache -f
+  when: jetbrains_font.changed or symbols_font.changed

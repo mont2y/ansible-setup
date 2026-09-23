@@ -1,0 +1,28 @@
+- name: Ensure Docker apt prerequisites
+  ansible.builtin.apt:
+    name: [ca-certificates, curl]
+    state: present
+  become: true
+- name: Create Docker apt key directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  become: true
+- name: Download Docker apt key
+  ansible.builtin.get_url:
+    url: 'https://download.docker.com/linux/{{ "ubuntu" if ansible_facts["distribution"] == "Ubuntu" else "debian" }}/gpg'
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+  become: true
+- name: Configure Docker repository
+  ansible.builtin.apt_repository:
+    repo: 'deb [arch={{ ansible_facts["architecture"] | replace("x86_64", "amd64") | replace("aarch64", "arm64") }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/{{ "ubuntu" if ansible_facts["distribution"] == "Ubuntu" else "debian" }} {{ ansible_facts["distribution_release"] }} stable'
+    filename: docker
+    state: present
+  become: true
+- name: Install Docker Engine and plugins
+  ansible.builtin.apt:
+    name: [docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin]
+    state: present
+  become: true

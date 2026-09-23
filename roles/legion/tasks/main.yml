@@ -1,0 +1,9 @@
+- name: Read hardware vendor
+  ansible.builtin.slurp:
+    src: /sys/class/dmi/id/sys_vendor
+  register: legion_vendor
+  failed_when: false
+  when: install_lenovo_legion_linux
+- name: Install LenovoLegionLinux for Lenovo machines
+  ansible.builtin.include_tasks: install.yml
+  when: install_lenovo_legion_linux and legion_vendor is succeeded and 'lenovo' in (legion_vendor.content | default('') | b64decode | lower)

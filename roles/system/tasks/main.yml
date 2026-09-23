@@ -1,0 +1,25 @@
+- name: Update apt systems
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+  become: true
+  when: update_system and setup_family == 'debian'
+- name: Update Fedora
+  ansible.builtin.dnf:
+    name: '*'
+    state: latest
+    update_cache: true
+  become: true
+  when: update_system and setup_family == 'fedora'
+- name: Update Arch
+  community.general.pacman:
+    update_cache: true
+    upgrade: true
+  become: true
+  when: update_system and setup_family == 'arch'
+- name: Install base and build packages
+  ansible.builtin.include_role:
+    name: manifest
+  vars:
+    manifest_packages: "{{ setup_packages.common + setup_packages[setup_family] + setup_packages.build_common + setup_packages['build_' + setup_family] }}"
+  when: install_base

@@ -1,0 +1,9 @@
+- name: Check installed AUR package {{ aur_package }}
+  ansible.builtin.command: pacman -Q {{ aur_package }}
+  register: aur_installed
+  changed_when: false
+  failed_when: false
+- name: Install AUR package {{ aur_package }}
+  ansible.builtin.command:
+    argv: [paru, -S, --needed, --noconfirm, '{{ aur_package }}']
+  when: aur_installed.rc != 0 and not ansible_check_mode

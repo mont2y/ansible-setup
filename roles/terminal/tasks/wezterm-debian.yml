@@ -1,0 +1,23 @@
+- name: Create keyring directory
+  ansible.builtin.file:
+    path: /usr/share/keyrings
+    state: directory
+    mode: '0755'
+  become: true
+- name: Download WezTerm repository key
+  ansible.builtin.get_url:
+    url: https://apt.fury.io/wez/gpg.key
+    dest: /usr/share/keyrings/wezterm-fury.asc
+    mode: '0644'
+  become: true
+- name: Configure WezTerm repository
+  ansible.builtin.apt_repository:
+    repo: 'deb [signed-by=/usr/share/keyrings/wezterm-fury.asc] https://apt.fury.io/wez/ * *'
+    filename: wezterm
+    state: present
+  become: true
+- name: Install WezTerm
+  ansible.builtin.apt:
+    name: wezterm
+    state: present
+  become: true

@@ -1,0 +1,99 @@
+- name: Install LenovoLegionLinux prerequisites
+  ansible.builtin.include_role:
+    name: manifest
+  vars:
+    manifest_packages: "{{ setup_packages.legion_common + setup_packages['legion_' + setup_family] }}"
+- name: Install Fedora development tool group
+  ansible.builtin.dnf:
+    name: '@Development Tools'
+    state: present
+  become: true
+  when: setup_family == 'fedora'
+- name: Check running kernel build tree
+  ansible.builtin.stat:
+    path: '/usr/lib/modules/{{ ansible_facts["kernel"] }}/build'
+  register: legion_headers
+- name: Install matching Debian kernel headers
+  ansible.builtin.apt:
+    name: 'linux-headers-{{ ansible_facts["kernel"] }}'
+    state: present
+  become: true
+  failed_when: false
+  when: setup_family == 'debian' and not legion_headers.stat.exists
+- name: Inspect Arch kernel compiler
+  ansible.builtin.command: grep -q '^CONFIG_CC_IS_CLANG=y' '/boot/config-{{ ansible_facts["kernel"] }}'
+  register: legion_clang
+  failed_when: false
+  changed_when: false
+  when: setup_family == 'arch'
+- name: Install Clang toolchain for Clang kernels
+  community.general.pacman:
+    name: '{{ setup_packages.legion_clang_arch }}'
+    state: present
+  become: true
+  when: setup_family == 'arch' and (legion_clang.rc == 0 or ansible_facts['distribution'] == 'CachyOS')
+- name: Determine owning Arch kernel package
+  ansible.builtin.command: pacman -Qqo '/usr/lib/modules/{{ ansible_facts["kernel"] }}/vmlinuz'
+  register: legion_kernel_package
+  failed_when: false
+  changed_when: false
+  when: setup_family == 'arch' and not legion_headers.stat.exists
+- name: Install matching Arch kernel headers
+  community.general.pacman:
+    name: '{{ legion_kernel_package.stdout }}-headers'
+    state: present
+  become: true
+  failed_when: false
+  when: setup_family == 'arch' and not legion_headers.stat.exists and legion_kernel_package.rc == 0
+- name: Create source checkout parent
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.local/src'
+    state: directory
+    mode: '0755'
+- name: Inspect existing Legion checkout
+  ansible.builtin.stat:
+    path: '{{ setup_home }}/.local/src/LenovoLegionLinux/.git'
+  register: legion_checkout
+- name: Detect local Legion changes
+  ansible.builtin.command: git -C '{{ setup_home }}/.local/src/LenovoLegionLinux' status --porcelain
+  register: legion_dirty
+  changed_when: false
+  when: legion_checkout.stat.exists
+- name: Fetch LenovoLegionLinux source
+  ansible.builtin.git:
+    repo: https://github.com/johnfanv2/LenovoLegionLinux.git
+    dest: '{{ setup_home }}/.local/src/LenovoLegionLinux'
+    update: "{{ not legion_checkout.stat.exists or legion_dirty.stdout == '' }}"
+- name: Recheck running kernel build tree
+  ansible.builtin.stat:
+    path: '/usr/lib/modules/{{ ansible_facts["kernel"] }}/build'
+  register: legion_headers_final
+- name: Check DKMS module status
+  ansible.builtin.command: dkms status
+  register: legion_dkms_status
+  failed_when: false
+  changed_when: false
+- name: Build and register Legion DKMS module
+  ansible.builtin.command:
+    argv: [make, dkms]
+    chdir: '{{ setup_home }}/.local/src/LenovoLegionLinux/kernel_module'
+  become: true
+  when: legion_headers_final.stat.exists and not (legion_dkms_status.stdout_lines | select('search', '(?i)legion') | select('search', ansible_facts['kernel'] | regex_escape) | list | length > 0) and not ansible_check_mode
+- name: Check Legion CLI
+  ansible.builtin.command: '{{ setup_home }}/.local/bin/legion_cli --help'
+  register: legion_cli_check
+  failed_when: false
+  changed_when: false
+- name: Install Legion CLI and GUI with pipx
+  ansible.builtin.command:
+    argv: [pipx, install, --system-site-packages, --python, python3, '{{ setup_home }}/.local/src/LenovoLegionLinux/python/legion_linux']
+  when: legion_cli_check.rc != 0 and not ansible_check_mode
+- name: Inspect Secure Boot status
+  ansible.builtin.command: mokutil --sb-state
+  register: legion_secure_boot
+  failed_when: false
+  changed_when: false
+- name: Explain module signing requirement
+  ansible.builtin.debug:
+    msg: Secure Boot is enabled; DKMS may require module signing and MOK enrollment.
+  when: legion_secure_boot.rc == 0 and 'enabled' in legion_secure_boot.stdout | lower

@@ -1,0 +1,59 @@
+- name: Install rclone
+  ansible.builtin.package:
+    name: rclone
+    state: present
+  become: true
+  when: install_rclone
+- name: Install Syncthing
+  ansible.builtin.package:
+    name: syncthing
+    state: present
+  become: true
+  when: install_syncthing
+- name: Prepare a fresh Syncthing identity without a default folder
+  ansible.builtin.command:
+    argv: [bash, '{{ playbook_dir }}/scripts/prepare-syncthing.sh']
+  environment:
+    XDG_RUNTIME_DIR: '/run/user/{{ ansible_facts["user_uid"] }}'
+  failed_when: false
+  when: install_syncthing and restore_bitwarden_secrets and restore_syncthing_from_bitwarden and not ansible_check_mode
+- name: Enable Syncthing user service
+  ansible.builtin.systemd_service:
+    name: syncthing.service
+    scope: user
+    enabled: true
+    state: started
+  environment:
+    XDG_RUNTIME_DIR: '/run/user/{{ ansible_facts["user_uid"] }}'
+  when: install_syncthing and not (restore_bitwarden_secrets and restore_syncthing_from_bitwarden) and not ansible_check_mode
+- name: Install Solaar
+  ansible.builtin.package:
+    name: solaar
+    state: present
+  become: true
+  when: install_solaar
+- name: Install Input Remapper on Debian/Fedora
+  ansible.builtin.package:
+    name: input-remapper
+    state: present
+  become: true
+  when: install_input_remapper and setup_family != 'arch'
+- name: Install Input Remapper from AUR
+  ansible.builtin.include_tasks: input-remapper-arch.yml
+  when: install_input_remapper and setup_family == 'arch'
+- name: Detect Input Remapper daemon
+  ansible.builtin.command: systemctl show -p LoadState --value input-remapper-daemon.service
+  register: remapper_service
+  changed_when: false
+  failed_when: false
+  when: install_input_remapper
+- name: Start Input Remapper daemon
+  ansible.builtin.systemd_service:
+    name: input-remapper-daemon.service
+    enabled: true
+    state: started
+  become: true
+  when: install_input_remapper and remapper_service.stdout == 'loaded'
+- name: Install Espanso
+  ansible.builtin.include_tasks: espanso.yml
+  when: install_espanso

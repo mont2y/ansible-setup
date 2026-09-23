@@ -1,0 +1,159 @@
+# Converted from source packages/*.txt at bc0a6016fa44e9bd2ed04167b9b83224fe60621b
+setup_packages:
+  arch:
+  - gnupg
+  - vim
+  - openssh
+  - fd
+  build_arch:
+  - base-devel
+  - pkgconf
+  build_common:
+  - cmake
+  build_debian:
+  - build-essential
+  - pkg-config
+  - make
+  - gcc
+  - g++
+  build_fedora:
+  - gcc
+  - gcc-c++
+  - make
+  - pkgconf-pkg-config
+  common:
+  - curl
+  - wget
+  - git
+  - ca-certificates
+  - unzip
+  - zip
+  - tar
+  - neovim
+  - nano
+  - tmux
+  - htop
+  - btop
+  - tree
+  - jq
+  - rsync
+  - ripgrep
+  - bash-completion
+  debian:
+  - gnupg
+  - vim
+  - openssh-client
+  - fd-find
+  development_arch:
+  - python
+  - python-pip
+  - python-pipx
+  development_debian:
+  - python3
+  - python3-pip
+  - python3-venv
+  - pipx
+  development_fedora:
+  - python3
+  - python3-pip
+  - pipx
+  espanso_build_arch:
+  - git
+  - dbus
+  - base-devel
+  - wl-clipboard
+  - wxwidgets-gtk3
+  - rust
+  fedora:
+  - gnupg2
+  - vim-enhanced
+  - openssh-clients
+  - fd-find
+  fonts_arch:
+  - ttf-jetbrains-mono
+  - ttf-nerd-fonts-symbols-mono
+  - fontconfig
+  - curl
+  - unzip
+  fonts_debian:
+  - fonts-jetbrains-mono
+  - fontconfig
+  - curl
+  - unzip
+  fonts_fedora:
+  - jetbrains-mono-fonts
+  - fontconfig
+  - curl
+  - unzip
+  legion_arch:
+  - base-devel
+  - lm_sensors
+  - git
+  - dmidecode
+  - python-pyqt6
+  - python-yaml
+  - python-argcomplete
+  - python-darkdetect
+  - python-pillow
+  - python-pipx
+  legion_clang_arch:
+  - clang
+  - llvm
+  - lld
+  legion_common:
+  - dkms
+  - openssl
+  - mokutil
+  legion_debian:
+  - make
+  - gcc
+  - build-essential
+  - git
+  - lm-sensors
+  - wget
+  - python3-pyqt6
+  - python3-yaml
+  - python3-venv
+  - python3-pip
+  - python3-argcomplete
+  - python3-darkdetect
+  - python3-pil
+  - pipx
+  legion_fedora:
+  - kernel-headers
+  - kernel-devel
+  - dmidecode
+  - lm_sensors
+  - python3-pyqt6
+  - python3-yaml
+  - python3-pip
+  - python3-argcomplete
+  - python3-darkdetect
+  - python3-pillow
+  - pipx
+  - git
+  virtualization_arch:
+  - qemu-full
+  - libvirt
+  - virt-install
+  - dnsmasq
+  - bridge-utils
+  - edk2-ovmf
+  virtualization_common:
+  - virt-manager
+  virtualization_debian:
+  - qemu-kvm
+  - qemu-system-x86
+  - qemu-utils
+  - libvirt-daemon-system
+  - libvirt-clients
+  - virtinst
+  - dnsmasq-base
+  - bridge-utils
+  - ovmf
+  virtualization_fedora:
+  - qemu-kvm
+  - libvirt
+  - virt-install
+  - edk2-ovmf
+  - dnsmasq

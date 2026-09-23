@@ -1,0 +1,18 @@
+- name: Install Brave repository key
+  ansible.builtin.get_url:
+    url: https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+    dest: /usr/share/keyrings/brave-browser-archive-keyring.gpg
+    mode: '0644'
+  become: true
+- name: Install Brave deb822 repository definition
+  ansible.builtin.get_url:
+    url: https://brave-browser-apt-release.s3.brave.com/brave-browser.sources
+    dest: /etc/apt/sources.list.d/brave-browser-release.sources
+    mode: '0644'
+  become: true
+- name: Install Brave
+  ansible.builtin.apt:
+    name: brave-browser
+    update_cache: true
+    state: present
+  become: true

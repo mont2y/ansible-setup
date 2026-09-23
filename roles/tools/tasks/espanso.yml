@@ -1,0 +1,62 @@
+- name: Select Espanso backend
+  ansible.builtin.set_fact:
+    setup_espanso_session: '{{ (ansible_env.XDG_SESSION_TYPE | default("wayland")) if espanso_backend == "auto" else espanso_backend }}'
+- name: Validate Espanso backend
+  ansible.builtin.assert:
+    that: setup_espanso_session in ['x11', 'wayland']
+- name: Install Espanso binary
+  ansible.builtin.include_tasks: 'espanso-{{ setup_family }}.yml'
+- name: Install capabilities tool on Wayland
+  ansible.builtin.package:
+    name: '{{ "libcap2-bin" if setup_family == "debian" else "libcap" }}'
+    state: present
+  become: true
+  when: setup_espanso_session == 'wayland'
+- name: Find Espanso executable for Wayland
+  ansible.builtin.command: which espanso
+  register: espanso_binary
+  changed_when: false
+  failed_when: false
+  when: setup_espanso_session == 'wayland'
+- name: Inspect current Espanso capability
+  ansible.builtin.command:
+    argv: [getcap, '{{ espanso_binary.stdout }}']
+  register: espanso_cap
+  changed_when: false
+  failed_when: false
+  when: setup_espanso_session == 'wayland' and espanso_binary.rc == 0
+- name: Grant Espanso Wayland capability
+  ansible.builtin.command:
+    argv: [setcap, 'cap_dac_override+p', '{{ espanso_binary.stdout }}']
+  become: true
+  when: setup_espanso_session == 'wayland' and espanso_binary.rc == 0 and 'cap_dac_override' not in espanso_cap.stdout
+- name: Register Espanso service
+  ansible.builtin.command: espanso service register
+  register: espanso_register
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode
+- name: Create Espanso match config directory
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.config/espanso/match'
+    state: directory
+    mode: '0755'
+- name: Inspect Espanso match config
+  ansible.builtin.stat:
+    path: '{{ setup_home }}/.config/espanso/match/base.yml'
+    follow: false
+  register: espanso_match
+- name: Back up unrelated Espanso match config
+  ansible.builtin.command:
+    argv: [mv, '{{ setup_home }}/.config/espanso/match/base.yml', '{{ setup_home }}/.config/espanso/match/base.yml.backup.{{ ansible_date_time.iso8601_basic_short }}']
+  when: espanso_match.stat.exists and (not espanso_match.stat.islnk or espanso_match.stat.lnk_source | default('') != playbook_dir + '/files/espanso/base.yml')
+- name: Link Espanso match config
+  ansible.builtin.file:
+    src: '{{ playbook_dir }}/files/espanso/base.yml'
+    dest: '{{ setup_home }}/.config/espanso/match/base.yml'
+    state: link
+- name: Restart Espanso when config changed
+  ansible.builtin.command: espanso restart
+  when: not ansible_check_mode
+  changed_when: false
+  failed_when: false

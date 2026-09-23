@@ -1,0 +1,41 @@
+- name: Install Flatpak
+  ansible.builtin.package:
+    name: flatpak
+    state: present
+  become: true
+  when: install_flatpak
+- name: Configure user Flathub
+  community.general.flatpak_remote:
+    name: flathub
+    flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+    method: user
+    state: present
+  when: install_flatpak
+- name: Check Flatpak availability for selected apps
+  ansible.builtin.command: flatpak --version
+  register: setup_flatpak_present
+  changed_when: false
+  failed_when: false
+- name: Install user Flatpak apps
+  community.general.flatpak:
+    name: '{{ item.id }}'
+    method: user
+    remote: flathub
+    state: present
+  loop:
+    - { id: org.telegram.desktop, enabled: '{{ install_telegram }}' }
+    - { id: net.lutris.Lutris, enabled: '{{ install_lutris }}' }
+    - { id: com.valvesoftware.Steam, enabled: '{{ install_steam }}' }
+  when: setup_flatpak_present.rc == 0 and item.enabled | bool
+- name: Install Brave
+  ansible.builtin.include_tasks: 'brave-{{ setup_family }}.yml'
+  when: install_brave
+- name: Install Postman
+  ansible.builtin.include_tasks: postman.yml
+  when: install_postman
+- name: Install Thunderbird
+  ansible.builtin.package:
+    name: thunderbird
+    state: present
+  become: true
+  when: install_thunderbird

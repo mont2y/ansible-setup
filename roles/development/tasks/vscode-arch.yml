@@ -1,0 +1,9 @@
+- name: Ensure paru
+  ansible.builtin.include_role:
+    name: aur
+- name: Install VS Code from AUR
+  ansible.builtin.include_role:
+    name: aur
+    tasks_from: install
+  vars:
+    aur_package: visual-studio-code-bin

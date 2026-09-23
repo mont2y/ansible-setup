@@ -1,0 +1,15 @@
+- name: Check Terra release
+  ansible.builtin.command: rpm -q terra-release
+  register: terra_present
+  changed_when: false
+  failed_when: false
+- name: Bootstrap Terra release
+  ansible.builtin.command:
+    argv: [dnf, install, -y, --nogpgcheck, --repofrompath, 'terra,https://repos.fyralabs.com/terra$releasever', terra-release]
+  become: true
+  when: terra_present.rc != 0 and not ansible_check_mode
+- name: Install Espanso
+  ansible.builtin.dnf:
+    name: 'espanso-{{ setup_espanso_session }}'
+    state: present
+  become: true

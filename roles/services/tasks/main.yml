@@ -1,0 +1,34 @@
+- name: Install OpenSSH server
+  ansible.builtin.package:
+    name: '{{ "openssh" if setup_family == "arch" else "openssh-server" }}'
+    state: present
+  become: true
+  when: install_openssh_server
+- name: Enable OpenSSH daemon
+  ansible.builtin.systemd_service:
+    name: '{{ "ssh.service" if setup_family == "debian" else "sshd.service" }}'
+    enabled: true
+    state: started
+  become: true
+  when: install_openssh_server and enable_openssh_server
+- name: Check Codex CLI
+  ansible.builtin.command: codex --version
+  register: codex_present
+  changed_when: false
+  failed_when: false
+  when: install_codex
+- name: Download Codex installer
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.cache/test-setup-ansible'
+    state: directory
+    mode: '0755'
+  when: install_codex and codex_present.rc != 0
+- name: Download Codex installer
+  ansible.builtin.get_url:
+    url: https://chatgpt.com/codex/install.sh
+    dest: '{{ setup_home }}/.cache/test-setup-ansible/codex-install.sh'
+    mode: '0700'
+  when: install_codex and codex_present.rc != 0
+- name: Run Codex installer
+  ansible.builtin.command: bash '{{ setup_home }}/.cache/test-setup-ansible/codex-install.sh'
+  when: install_codex and codex_present.rc != 0 and not ansible_check_mode

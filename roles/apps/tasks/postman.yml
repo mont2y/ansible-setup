@@ -1,0 +1,40 @@
+- name: Require supported Postman architecture
+  ansible.builtin.assert:
+    that: ansible_facts['architecture'] in ['x86_64', 'aarch64']
+- name: Check Postman installation
+  ansible.builtin.stat:
+    path: /opt/Postman/Postman
+  register: postman_binary
+- name: Download Postman archive
+  ansible.builtin.get_url:
+    url: '{{ "https://dl.pstmn.io/download/latest/linux64" if ansible_facts["architecture"] == "x86_64" else "https://dl.pstmn.io/download/latest/linux_arm64" }}'
+    dest: /tmp/test-setup-ansible-postman.tar.gz
+    mode: '0644'
+  when: not postman_binary.stat.exists
+- name: Extract Postman into opt
+  ansible.builtin.unarchive:
+    src: /tmp/test-setup-ansible-postman.tar.gz
+    dest: /opt
+    remote_src: true
+    creates: /opt/Postman/Postman
+  become: true
+  when: not postman_binary.stat.exists
+- name: Link Postman executable
+  ansible.builtin.file:
+    src: /opt/Postman/Postman
+    dest: /usr/local/bin/postman
+    state: link
+  become: true
+- name: Install Postman launcher
+  ansible.builtin.copy:
+    dest: /usr/share/applications/postman.desktop
+    mode: '0644'
+    content: |
+      [Desktop Entry]
+      Name=Postman
+      Exec=/opt/Postman/Postman
+      Icon=/opt/Postman/app/resources/app/assets/icon.png
+      Type=Application
+      Categories=Development;
+      Terminal=false
+  become: true

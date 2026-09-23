@@ -1,0 +1,37 @@
+- name: Configure Linux workstation
+  hosts: all
+  gather_facts: true
+  vars_files:
+    - vars/packages.yml
+  pre_tasks:
+    - name: Require a normal account
+      ansible.builtin.assert:
+        that: ansible_user_id != 'root'
+        fail_msg: Run as your normal user and supply -K for sudo.
+      tags: always
+    - name: Determine distro family and account home
+      ansible.builtin.set_fact:
+        setup_family: >-
+          {{ 'debian' if ansible_facts['os_family'] == 'Debian' else
+             'fedora' if ansible_facts['distribution'] == 'Fedora' else
+             'arch' if ansible_facts['distribution'] in ['Archlinux', 'CachyOS', 'Omarchy'] or ansible_facts['os_family'] == 'Archlinux' else 'unsupported' }}
+        setup_home: "{{ ansible_facts['user_dir'] }}"
+        setup_user: "{{ ansible_user_id }}"
+      tags: always
+    - name: Refuse unsupported systems
+      ansible.builtin.assert:
+        that: setup_family != 'unsupported'
+        fail_msg: "Unsupported distribution: {{ ansible_facts['distribution'] }}"
+      tags: always
+  roles:
+    - { role: system, tags: [system] }
+    - { role: shell, tags: [shell] }
+    - { role: terminal, tags: [terminal] }
+    - { role: development, tags: [development] }
+    - { role: apps, tags: [apps] }
+    - { role: tools, tags: [tools] }
+    - { role: bitwarden, tags: [bitwarden] }
+    - { role: virtualization, tags: [virtualization] }
+    - { role: legion, tags: [legion] }
+    - { role: secrets, tags: [secrets] }
+    - { role: services, tags: [services] }

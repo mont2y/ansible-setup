@@ -1,0 +1,46 @@
+- name: Install font dependencies
+  ansible.builtin.include_role:
+    name: manifest
+  vars:
+    manifest_packages: "{{ setup_packages['fonts_' + setup_family] }}"
+  when: install_wezterm
+- name: Install upstream font fallbacks
+  ansible.builtin.include_tasks: fonts.yml
+  when: install_wezterm
+- name: Configure WezTerm package source
+  ansible.builtin.include_tasks: 'wezterm-{{ setup_family }}.yml'
+  when: install_wezterm
+- name: Create WezTerm config parent
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.config'
+    state: directory
+    mode: '0755'
+  when: install_wezterm
+- name: Inspect WezTerm config
+  ansible.builtin.stat:
+    path: '{{ setup_home }}/.config/wezterm'
+    follow: false
+  register: wezterm_path
+  when: install_wezterm
+- name: Inspect existing Git remote
+  ansible.builtin.command: git -C '{{ setup_home }}/.config/wezterm' remote get-url origin
+  register: wezterm_remote
+  changed_when: false
+  failed_when: false
+  when: install_wezterm and wezterm_path.stat.exists and wezterm_path.stat.isdir
+- name: Check for local changes
+  ansible.builtin.command: git -C '{{ setup_home }}/.config/wezterm' status --porcelain
+  register: wezterm_dirty
+  changed_when: false
+  when: install_wezterm and wezterm_remote is not skipped and wezterm_remote.rc == 0 and wezterm_remote.stdout | regex_replace('\\.git$', '') == wezterm_config_repo | regex_replace('\\.git$', '')
+- name: Back up unrelated WezTerm config
+  ansible.builtin.command:
+    argv: [mv, '{{ setup_home }}/.config/wezterm', '{{ setup_home }}/.config/wezterm.backup.{{ ansible_date_time.iso8601_basic_short }}']
+  when: install_wezterm and wezterm_path.stat.exists and (wezterm_remote is skipped or wezterm_remote.rc != 0 or wezterm_remote.stdout | regex_replace('\\.git$', '') != wezterm_config_repo | regex_replace('\\.git$', ''))
+- name: Clone or update clean WezTerm config
+  ansible.builtin.git:
+    repo: '{{ wezterm_config_repo }}'
+    dest: '{{ setup_home }}/.config/wezterm'
+    version: '{{ wezterm_config_branch }}'
+    update: true
+  when: install_wezterm and (not wezterm_path.stat.exists or wezterm_remote is skipped or wezterm_remote.rc != 0 or wezterm_remote.stdout | regex_replace('\\.git$', '') != wezterm_config_repo | regex_replace('\\.git$', '') or (wezterm_dirty is not skipped and wezterm_dirty.stdout == ''))

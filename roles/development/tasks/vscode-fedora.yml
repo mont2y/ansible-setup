@@ -1,0 +1,24 @@
+- name: Install Microsoft signing key
+  ansible.builtin.get_url:
+    url: https://packages.microsoft.com/keys/microsoft.asc
+    dest: /etc/pki/rpm-gpg/MICROSOFT-RPM-GPG-KEY
+    mode: '0644'
+  become: true
+- name: Install VS Code repo file
+  ansible.builtin.copy:
+    dest: /etc/yum.repos.d/vscode.repo
+    mode: '0644'
+    content: |
+      [code]
+      name=Visual Studio Code
+      baseurl=https://packages.microsoft.com/yumrepos/vscode
+      enabled=1
+      type=rpm-md
+      gpgcheck=1
+      gpgkey=file:///etc/pki/rpm-gpg/MICROSOFT-RPM-GPG-KEY
+  become: true
+- name: Install VS Code
+  ansible.builtin.dnf:
+    name: code
+    state: present
+  become: true

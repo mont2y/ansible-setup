@@ -1,0 +1,30 @@
+- name: Install pinned NVM checkout
+  ansible.builtin.git:
+    repo: https://github.com/nvm-sh/nvm.git
+    dest: '{{ setup_home }}/.nvm'
+    version: '{{ nvm_version }}'
+    update: false
+- name: Inspect current Node LTS alias
+  ansible.builtin.shell: |
+    source "{{ setup_home }}/.nvm/nvm.sh"
+    nvm version 'lts/*'
+  args:
+    executable: /bin/bash
+  register: existing_node_lts
+  changed_when: false
+- name: Install Node LTS
+  ansible.builtin.shell: |
+    source "{{ setup_home }}/.nvm/nvm.sh"
+    nvm install --lts
+    nvm alias default 'lts/*'
+  args:
+    executable: /bin/bash
+  when: existing_node_lts.stdout == 'N/A' and not ansible_check_mode
+- name: Set default to installed LTS
+  ansible.builtin.shell: |
+    source "{{ setup_home }}/.nvm/nvm.sh"
+    nvm alias default 'lts/*'
+  args:
+    executable: /bin/bash
+  when: existing_node_lts.stdout != 'N/A'
+  changed_when: false

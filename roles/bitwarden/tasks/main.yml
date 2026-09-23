@@ -1,0 +1,44 @@
+- name: Install native Bitwarden installer prerequisites
+  ansible.builtin.package:
+    name: [curl, jq, unzip, ca-certificates]
+    state: present
+  become: true
+  when: install_bitwarden_cli
+- name: Check Bitwarden CLI availability
+  ansible.builtin.command: bw --version
+  register: bitwarden_present
+  changed_when: false
+  failed_when: false
+  environment:
+    PATH: '{{ setup_home }}/.local/bin:{{ ansible_env.PATH }}'
+  when: install_bitwarden_cli
+- name: Install Bitwarden CLI using verified upstream archive or npm
+  ansible.builtin.command:
+    argv: [bash, '{{ playbook_dir }}/scripts/install-bitwarden.sh']
+  environment:
+    PATH: '{{ setup_home }}/.local/bin:{{ ansible_env.PATH }}'
+    FAMILY: '{{ setup_family }}'
+    INSTALL_BITWARDEN_CLI: 'true'
+    INSTALL_BITWARDEN_DESKTOP: 'false'
+    BITWARDEN_CLI_INSTALL_METHOD: '{{ bitwarden_cli_install_method }}'
+    BITWARDEN_CLI_VERSION: '{{ bitwarden_cli_version }}'
+  when: install_bitwarden_cli and bitwarden_present.rc != 0 and not ansible_check_mode
+- name: Install Bitwarden Desktop
+  community.general.flatpak:
+    name: com.bitwarden.desktop
+    method: user
+    remote: flathub
+    state: present
+  when: install_bitwarden_desktop and (setup_flatpak_present is defined and setup_flatpak_present.rc == 0)
+- name: Link process secret wrapper into user bin
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.local/bin'
+    state: directory
+    mode: '0755'
+  when: install_bitwarden_cli
+- name: Install process secret wrapper link
+  ansible.builtin.file:
+    src: '{{ playbook_dir }}/scripts/with-bitwarden-secret'
+    dest: '{{ setup_home }}/.local/bin/with-bitwarden-secret'
+    state: link
+  when: install_bitwarden_cli

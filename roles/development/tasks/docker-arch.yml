@@ -1,0 +1,5 @@
+- name: Install Docker Engine and plugins
+  community.general.pacman:
+    name: [docker, docker-buildx, docker-compose]
+    state: present
+  become: true

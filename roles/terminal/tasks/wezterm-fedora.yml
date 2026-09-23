@@ -1,0 +1,15 @@
+- name: Install COPR plugin
+  ansible.builtin.dnf:
+    name: dnf-plugins-core
+    state: present
+  become: true
+- name: Enable WezTerm COPR
+  community.general.copr:
+    name: wezfurlong/wezterm-nightly
+    state: enabled
+  become: true
+- name: Install WezTerm
+  ansible.builtin.dnf:
+    name: wezterm
+    state: present
+  become: true

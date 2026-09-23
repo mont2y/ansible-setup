@@ -1,0 +1,35 @@
+- name: Install NVM and Node
+  ansible.builtin.include_tasks: node.yml
+  when: install_nvm_node
+- name: Install Python tools
+  ansible.builtin.include_role:
+    name: manifest
+  vars:
+    manifest_packages: "{{ setup_packages['development_' + setup_family] }}"
+  when: install_python
+- name: Install Docker
+  ansible.builtin.include_tasks: 'docker-{{ setup_family }}.yml'
+  when: install_docker
+- name: Enable Docker daemon
+  ansible.builtin.systemd_service:
+    name: docker.service
+    enabled: true
+    state: started
+  become: true
+  when: install_docker
+- name: Add account to Docker group
+  ansible.builtin.user:
+    name: '{{ setup_user }}'
+    groups: docker
+    append: true
+  become: true
+  when: install_docker
+- name: Install VS Code
+  ansible.builtin.include_tasks: 'vscode-{{ setup_family }}.yml'
+  when: install_vscode
+- name: Install GitHub CLI
+  ansible.builtin.package:
+    name: gh
+    state: present
+  become: true
+  when: install_github_cli

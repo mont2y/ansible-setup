@@ -1,0 +1,36 @@
+# Preserve upstream behavior: skip unavailable packages, but fail on installation errors.
+- name: Check already installed manifest packages
+  ansible.builtin.command:
+    argv: "{{ (['dpkg-query', '-W', item] if setup_family == 'debian' else ['rpm', '-q', item] if setup_family == 'fedora' else ['pacman', '-Q', item]) }}"
+  loop: '{{ manifest_packages | unique }}'
+  register: manifest_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+- name: Check availability of missing manifest packages
+  ansible.builtin.command:
+    argv: "{{ (['apt-cache', 'show', item] if setup_family == 'debian' else ['dnf', '-q', 'info', item] if setup_family == 'fedora' else ['pacman', '-Si', item]) }}"
+  loop: '{{ manifest_packages | unique }}'
+  loop_control:
+    index_var: manifest_index
+  when: manifest_installed.results[manifest_index].rc != 0
+  register: manifest_available
+  changed_when: false
+  failed_when: false
+  check_mode: false
+- name: Install available manifest packages
+  ansible.builtin.package:
+    name: '{{ item }}'
+    state: present
+  loop: '{{ manifest_packages | unique }}'
+  loop_control:
+    index_var: manifest_index
+  become: true
+  when: manifest_installed.results[manifest_index].rc == 0 or (manifest_available.results[manifest_index].rc | default(1)) == 0
+- name: Report unavailable manifest packages
+  ansible.builtin.debug:
+    msg: 'Skipping unavailable package: {{ item }}'
+  loop: '{{ manifest_packages | unique }}'
+  loop_control:
+    index_var: manifest_index
+  when: manifest_installed.results[manifest_index].rc != 0 and (manifest_available.results[manifest_index].rc | default(1)) != 0

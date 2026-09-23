@@ -1,0 +1,7 @@
+- hosts: localhost
+  gather_facts: false
+  vars:
+    setup_family: debian
+    manifest_packages: [test-setup-ansible-package-that-does-not-exist]
+  roles:
+    - manifest

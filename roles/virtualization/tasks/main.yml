@@ -1,0 +1,67 @@
+- name: Install KVM/QEMU/libvirt packages
+  ansible.builtin.include_role:
+    name: manifest
+  vars:
+    manifest_packages: "{{ setup_packages.virtualization_common + setup_packages['virtualization_' + setup_family] }}"
+  when: install_virtualization
+- name: Install Python bindings required by virt_net
+  ansible.builtin.package:
+    name: "{{ ['python3-libvirt', 'python3-lxml'] if setup_family in ['debian', 'fedora'] else ['python-libvirt', 'python-lxml'] }}"
+    state: present
+  become: true
+  when: install_virtualization
+- name: Detect libvirt service variant
+  ansible.builtin.command: systemctl show -p LoadState --value libvirtd.service
+  register: libvirtd_state
+  changed_when: false
+  when: install_virtualization
+- name: Enable monolithic libvirt service
+  ansible.builtin.systemd_service:
+    name: libvirtd.service
+    state: started
+    enabled: true
+  become: true
+  when: install_virtualization and libvirtd_state.stdout == 'loaded'
+- name: Enable modular libvirt services
+  ansible.builtin.systemd_service:
+    name: '{{ item }}'
+    state: started
+    enabled: true
+  loop: [virtqemud.service, virtnetworkd.service]
+  become: true
+  when: install_virtualization and libvirtd_state.stdout != 'loaded'
+- name: Add user to libvirt and KVM groups
+  ansible.builtin.user:
+    name: '{{ setup_user }}'
+    groups: [libvirt, kvm]
+    append: true
+  become: true
+  when: install_virtualization
+- name: List existing libvirt networks
+  ansible.builtin.command: virsh --connect qemu:///system net-list --all --name
+  become: true
+  register: existing_virt_nets
+  changed_when: false
+  when: install_virtualization
+- name: Define missing default NAT network
+  community.libvirt.virt_net:
+    name: default
+    command: define
+    xml: '{{ lookup("ansible.builtin.template", "default-network.xml.j2") }}'
+    uri: qemu:///system
+  become: true
+  when: install_virtualization and 'default' not in existing_virt_nets.stdout_lines
+- name: Start default NAT network
+  community.libvirt.virt_net:
+    name: default
+    state: active
+    uri: qemu:///system
+  become: true
+  when: install_virtualization
+- name: Enable default NAT network autostart
+  community.libvirt.virt_net:
+    name: default
+    autostart: true
+    uri: qemu:///system
+  become: true
+  when: install_virtualization
