@@ -176,6 +176,11 @@ install_bitwarden_cli > "$BW_TEST_DIR/log" 2>&1 || fail 'NVM load path failed'
 [[ "$BW_TEST_NVM_LOADED" == true ]] || fail 'NVM not loaded'
 unset -f command
 rm "$HOME/.local/bin/bw"
+# Existing system npm must not prevent loading the user's NVM environment.
+BW_TEST_NVM_LOADED=false
+install_bitwarden_cli > "$BW_TEST_DIR/log" 2>&1 || fail 'NVM preference failed'
+[[ "$BW_TEST_NVM_LOADED" == true ]] || fail 'Existing npm bypassed NVM'
+rm "$HOME/.local/bin/bw"
 # Simulate npm and NVM both unavailable, exercising auto's native fallback.
 rm "$HOME/.nvm/nvm.sh"
 # shellcheck disable=SC2329
@@ -191,6 +196,12 @@ if install_bitwarden_cli > "$BW_TEST_DIR/log" 2>&1; then fail 'Missing npm accep
 unset -f command
 BITWARDEN_CLI_INSTALL_METHOD=invalid
 if install_bitwarden_cli > "$BW_TEST_DIR/log" 2>&1; then fail 'Invalid install method accepted'; fi
+# Exercise the real entry point: an installation error must reach Ansible.
+if INSTALL_BITWARDEN_CLI=true INSTALL_BITWARDEN_DESKTOP=false BITWARDEN_CLI_INSTALL_METHOD=invalid \
+    bash "$ROOT_DIR/scripts/install-bitwarden.sh" > "$BW_TEST_DIR/log" 2>&1; then
+    fail 'Installer entry point hid CLI installation failure'
+fi
+grep -q 'Bitwarden CLI installation failed' "$BW_TEST_DIR/log" || fail 'Missing installation failure diagnostic'
 INSTALL_BITWARDEN_DESKTOP=true
 # Already analyzed above; this second source only exercises the desktop switch.
 # shellcheck source=/dev/null

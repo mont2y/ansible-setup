@@ -54,7 +54,8 @@ install_bitwarden_cli() {
         return 0
     fi
     case "$method" in auto|npm|native) ;; *) warn 'Invalid BITWARDEN_CLI_INSTALL_METHOD (use auto, npm, or native)'; return 1 ;; esac
-    if [[ "$method" != native ]] && ! command -v npm >/dev/null 2>&1 && [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+    # Prefer the user's NVM environment even when system npm is on PATH.
+    if [[ "$method" != native && -s "$HOME/.nvm/nvm.sh" ]]; then
         export NVM_DIR="$HOME/.nvm"
         # shellcheck disable=SC1091
         source "$NVM_DIR/nvm.sh" || return 1
@@ -73,7 +74,7 @@ install_bitwarden_cli() {
 }
 
 if [[ "${INSTALL_BITWARDEN_CLI:-true}" == true ]]; then
-    install_bitwarden_cli || warn 'Bitwarden CLI installation failed; secret restoration will follow BITWARDEN_SECRETS_REQUIRED'
+    install_bitwarden_cli || die 'Bitwarden CLI installation failed; resolve the error above and rerun the Bitwarden role'
 fi
 if [[ "${INSTALL_BITWARDEN_DESKTOP:-true}" == true ]]; then
     install_flatpak_app com.bitwarden.desktop || warn 'Bitwarden Desktop installation failed'
