@@ -14,6 +14,7 @@ install_brave: true
 install_telegram: true
 install_lutris: true
 install_steam: true
+install_obsidian: true
 install_postman: true
 install_thunderbird: true
 install_rclone: true

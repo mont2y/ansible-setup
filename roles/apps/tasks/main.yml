@@ -26,6 +26,7 @@
     - { id: org.telegram.desktop, enabled: '{{ install_telegram }}' }
     - { id: net.lutris.Lutris, enabled: '{{ install_lutris }}' }
     - { id: com.valvesoftware.Steam, enabled: '{{ install_steam }}' }
+    - { id: md.obsidian.Obsidian, enabled: '{{ install_obsidian }}' }
   when: setup_flatpak_present.rc == 0 and item.enabled | bool
 - name: Install Brave
   ansible.builtin.include_tasks: 'brave-{{ setup_family }}.yml'

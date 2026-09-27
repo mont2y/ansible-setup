@@ -130,7 +130,7 @@ To fetch changes from GitHub, run `git pull --ff-only` in the checkout first. If
 | `shell` | Zsh, Oh My Zsh, plugins, backed-up `.zshrc` link, login shell |
 | `terminal` | Font packages and fallbacks, WezTerm, separate WezTerm config checkout |
 | `development` | NVM and Node LTS, Python tools, Docker, VS Code, GitHub CLI |
-| `apps` | Flatpak and Flathub, Telegram, Lutris, Steam, Brave, Postman, Thunderbird |
+| `apps` | Flatpak and Flathub, Telegram, Lutris, Steam, Obsidian, Brave, Postman, Thunderbird |
 | `tools` | rclone, Syncthing, Solaar, Input Remapper, Espanso |
 | `bitwarden` | Bitwarden CLI/Desktop and `with-bitwarden-secret` wrapper |
 | `virtualization` | QEMU, KVM, libvirt, virt-manager, default NAT network |
