@@ -125,7 +125,7 @@ def pair(private, public, interactive=False, agent=False):
         if encrypted_public_blob(private) != base64.b64decode(expected[1], validate=True):
             raise Unsafe('Invalid or mismatched encrypted keypair; rerun interactive restoration.')
         if not os.environ.get('SSH_AUTH_SOCK') or run(['ssh-add', '-T', str(public)]).returncode:
-            raise Unsafe('Encrypted key needs an unlocked SSH agent: rerun scripts/restore-github-ssh.sh in a terminal to load it automatically, then rerun Ansible. Manual alternative: ssh-add ~/.ssh/id_ed25519_github.')
+            raise Unsafe('Encrypted key needs an unlocked SSH agent: rerun scripts/restore-github-ssh.sh in a terminal to load it automatically, then rerun Ansible. Manual alternative: ssh-add ~/.ssh/id_ed25519.')
     else:
         raise Unsafe('Invalid or encrypted private key: rerun in an interactive terminal to enter its passphrase.')
     fingerprint = run(['ssh-keygen', '-lf', str(public)]).stdout.split()

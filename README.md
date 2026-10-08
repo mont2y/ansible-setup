@@ -92,8 +92,9 @@ In Bitwarden, create these two **Secure Notes** with exact names:
 | `Linux Setup - github-ssh-public` | Matching one-line OpenSSH public key; a trailing newline is allowed |
 
 Keep the existing private-key passphrase. The restore command accepts Ed25519,
-RSA and ECDSA keys and detects the actual type; its dedicated filename stays
-`id_ed25519_github` even for a legacy algorithm. It never touches `id_ed25519`.
+RSA and ECDSA keys and detects the actual type; the default filename stays
+`id_ed25519` even for a legacy algorithm. An existing different key at that
+path is preserved unless you explicitly enable replacement.
 Encrypted keys should use OpenSSH format for the subsequent agent validation.
 
 Install the CLI first; this does not require GitHub SSH access or vault login:
@@ -106,7 +107,7 @@ Install the CLI first; this does not require GitHub SSH access or vault login:
 
 Run restoration in a terminal as your normal user. It authenticates to Bitwarden
 once, reads both notes, validates the matching pair, and installs
-`~/.ssh/id_ed25519_github` (`0600`) and its `.pub` (`0644`) under `~/.ssh` (`0700`).
+`~/.ssh/id_ed25519` (`0600`) and its `.pub` (`0644`) under `~/.ssh` (`0700`).
 It prints paths and the public fingerprint only. It supports an interactive SSH
 passphrase prompt, separate from the vault master password, and relocks only a
 vault session it acquired itself. Normal Ansible reruns never fetch these keys.
@@ -160,7 +161,7 @@ must stay below `~/.local/share/ansible-setup/`; `espanso_config_base_relative_p
 defaults to `match/base.yml` and must not traverse parent directories. Ansible
 accepts identity path overrides `github_ssh_private_key_path` and
 `github_ssh_public_key_path` directly under `~/.ssh`; the restoration command
-always uses the dedicated default filenames.
+always uses `~/.ssh/id_ed25519` and `~/.ssh/id_ed25519.pub`.
 
 Then run the full setup:
 
@@ -222,7 +223,7 @@ verifying an official rotation announcement; resolve a conflict manually.
 To test authentication after the role configures trust:
 
 ```bash
-ssh -i ~/.ssh/id_ed25519_github -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -T git@github.com
+ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -T git@github.com
 ```
 
 GitHub can greet you successfully and still exit with status **1** because it

@@ -28,7 +28,7 @@ class IntegrationTests(unittest.TestCase):
         cls.home.mkdir(mode=0o700)
         cls.ssh = cls.home/'.ssh'
         cls.ssh.mkdir(mode=0o700)
-        cls.private = cls.ssh/'id_ed25519_github'
+        cls.private = cls.ssh/'id_ed25519'
         cls.public = Path(str(cls.private)+'.pub')
         subprocess.run(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-f', str(cls.private)], check=True)
         cls.repo = cls.work/'origin'

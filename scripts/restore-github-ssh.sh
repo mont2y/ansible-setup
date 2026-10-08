@@ -15,8 +15,8 @@ case "${GITHUB_SSH_OVERWRITE_EXISTING:-false}" in
     false) ;;
     *) die 'GITHUB_SSH_OVERWRITE_EXISTING must be true or false.' ;;
 esac
-private="$HOME/.ssh/id_ed25519_github"
-public="$HOME/.ssh/id_ed25519_github.pub"
+private="$HOME/.ssh/id_ed25519"
+public="$HOME/.ssh/id_ed25519.pub"
 check_paths() {
     python3 "$ROOT_DIR/lib/github_ssh.py" paths --home "$HOME" --private "$private" --public "$public"
 }

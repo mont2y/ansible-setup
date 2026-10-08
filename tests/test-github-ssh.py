@@ -66,8 +66,8 @@ class RestoreTests(unittest.TestCase):
         self.save_items()
         self.note(0, self.original_private)
         self.note(1, self.original_public)
-        self.private = self.home / '.ssh/id_ed25519_github'
-        self.public = self.home / '.ssh/id_ed25519_github.pub'
+        self.private = self.home / '.ssh/id_ed25519'
+        self.public = self.home / '.ssh/id_ed25519.pub'
 
     def stop_managed_agent(self):
         pid_file = self.home / '.ssh/ansible-setup-agent/agent.pid'
