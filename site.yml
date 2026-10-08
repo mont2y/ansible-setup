@@ -29,8 +29,9 @@
     - { role: terminal, tags: [terminal] }
     - { role: development, tags: [development] }
     - { role: apps, tags: [apps] }
-    - { role: tools, tags: [tools] }
     - { role: bitwarden, tags: [bitwarden] }
+    - { role: github_access, tags: [github_access, tools] }
+    - { role: tools, tags: [tools] }
     - { role: virtualization, tags: [virtualization] }
     - { role: legion, tags: [legion] }
     - { role: secrets, tags: [secrets] }

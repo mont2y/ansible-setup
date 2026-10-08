@@ -36,6 +36,14 @@ restore_rclone_from_bitwarden: true
 bitwarden_cli_install_method: auto
 bitwarden_cli_version: '2026.9.0'
 espanso_backend: auto
+# Private snippets require the SSH bootstrap in README; bundled is an opt-in example.
+espanso_config_source: private_git
+espanso_config_repo: git@github.com:mont2y/espanso-config.git
+espanso_config_branch: main
+espanso_config_checkout: "{{ setup_home }}/.local/share/ansible-setup/espanso-config"
+espanso_config_base_relative_path: match/base.yml
+github_ssh_private_key_path: "{{ setup_home }}/.ssh/id_ed25519_github"
+github_ssh_public_key_path: "{{ setup_home }}/.ssh/id_ed25519_github.pub"
 wezterm_config_repo: https://github.com/mont2y/wezterm-config.git
 wezterm_config_branch: main
 nvm_version: v0.40.7

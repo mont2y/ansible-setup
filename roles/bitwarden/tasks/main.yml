@@ -1,6 +1,6 @@
 - name: Install native Bitwarden installer prerequisites
   ansible.builtin.package:
-    name: [curl, jq, unzip, ca-certificates]
+    name: '{{ ["curl", "jq", "unzip", "ca-certificates", "git"] + (["openssh"] if setup_family == "arch" else ["openssh-clients"] if setup_family == "fedora" else ["openssh-client"]) }}'
     state: present
   become: true
   when: install_bitwarden_cli

@@ -1,16 +1,5 @@
-# espanso match file
-
-# For a complete introduction, visit the official docs at: https://espanso.org/docs/
-
-# yaml-language-server: $schema=https://raw.githubusercontent.com/espanso/espanso/dev/schemas/match.schema.json
-
+# Generic bundled example only. Personal snippets belong in your private repo.
 matches:
-  - trigger: "myem1"
-    replace: "test"
-
-  - trigger: "beauto"
-    replace: "test2"
-
   - trigger: ":date"
     replace: "{{mydate}}"
     vars:
@@ -18,11 +7,3 @@ matches:
         type: date
         params:
           format: "%m/%d/%Y"
-
-  - trigger: ":shell"
-    replace: "{{output}}"
-    vars:
-      - name: output
-        type: shell
-        params:
-          cmd: "echo 'Hello from your shell'"

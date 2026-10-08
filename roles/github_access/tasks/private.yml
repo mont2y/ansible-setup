@@ -1,0 +1,86 @@
+- name: Require a GitHub SSH repository URL
+  ansible.builtin.assert:
+    that:
+      - espanso_config_repo is match('^git@github[.]com:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+[.]git$')
+    fail_msg: Use git@github.com:OWNER/REPOSITORY.git and authorize the restored public key for that repository.
+- name: Discover the current or restoration-managed SSH agent
+  ansible.builtin.command:
+    argv: [python3, '{{ playbook_dir }}/lib/github_agent.py', socket, --home, '{{ setup_home }}']
+  register: github_agent_discovery
+  changed_when: false
+  check_mode: false
+- name: Select the agent socket for identity checks and Git
+  ansible.builtin.set_fact:
+    github_agent_socket: '{{ github_agent_discovery.stdout }}'
+- name: Validate restored identity and available agent without reading secrets into Ansible
+  ansible.builtin.command:
+    argv:
+      - python3
+      - '{{ playbook_dir }}/lib/github_ssh.py'
+      - identity
+      - --home
+      - '{{ setup_home }}'
+      - --private
+      - '{{ github_ssh_private_key_path }}'
+      - --public
+      - '{{ github_ssh_public_key_path }}'
+  environment:
+    SSH_AUTH_SOCK: '{{ github_agent_socket }}'
+  changed_when: false
+  check_mode: false
+- name: Refuse unsafe known_hosts or conflicting GitHub Ed25519 keys
+  ansible.builtin.command:
+    argv:
+      - python3
+      - '{{ playbook_dir }}/lib/github_ssh.py'
+      - host
+      - --home
+      - '{{ setup_home }}'
+      - --path
+      - '{{ setup_home }}/.ssh/known_hosts'
+      - --host-key
+      - '{{ github_verified_host_key }}'
+  changed_when: false
+  check_mode: false
+- name: Restrict SSH directory permissions
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.ssh'
+    state: directory
+    mode: '0700'
+- name: Install independently verified GitHub host key
+  ansible.builtin.known_hosts:
+    path: '{{ setup_home }}/.ssh/known_hosts'
+    name: github.com
+    key: '{{ github_verified_host_key }}'
+    state: present
+- name: Restrict known_hosts permissions
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.ssh/known_hosts'
+    mode: '0600'
+  when: not ansible_check_mode
+- name: Probe private repository access using the restored identity
+  ansible.builtin.command:
+    argv: [git, ls-remote, --exit-code, '{{ espanso_config_repo }}', '{{ espanso_config_branch }}']
+  environment:
+    GIT_SSH_COMMAND: 'ssh {{ github_ssh_options }} -i {{ github_ssh_private_key_path | quote }}'
+    GIT_TERMINAL_PROMPT: '0'
+    SSH_AUTH_SOCK: '{{ github_agent_socket }}'
+  register: github_repository_probe
+  changed_when: false
+  failed_when: false
+  no_log: true
+  when: not ansible_check_mode
+- name: Explain repository authentication failures
+  ansible.builtin.assert:
+    that: github_repository_probe.rc == 0
+    fail_msg: >-
+      Cannot read the private Espanso repository/branch with the restored identity.
+      Check that the repository and branch exist and that the public key is authorized.
+      For encrypted keys run scripts/restore-github-ssh.sh in a terminal;
+      it restores the identity and loads it into an existing or new agent.
+      Ansible automatically discovers the agent started by restoration.
+      Host checking remains strict; verify GitHub's published host key if it changed.
+  when: not ansible_check_mode
+- name: Mark GitHub prerequisites complete for this play
+  ansible.builtin.set_fact:
+    github_access_ready: true

@@ -1,0 +1,80 @@
+- name: Require a separate private checkout and relative match file
+  ansible.builtin.assert:
+    that:
+      - espanso_config_checkout.startswith(setup_home + '/.local/share/ansible-setup/')
+      - espanso_config_base_relative_path is match('^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$')
+      - "'..' not in espanso_config_base_relative_path.split('/')"
+    fail_msg: Keep the checkout below ~/.local/share/ansible-setup and use a relative path without parent traversal.
+- name: Validate private checkout path ownership and parents
+  ansible.builtin.command:
+    argv: [python3, '{{ playbook_dir }}/lib/github_ssh.py', directory, --home, '{{ setup_home }}', --path, '{{ espanso_config_checkout }}']
+  changed_when: false
+  check_mode: false
+- name: Create protected private checkout parent
+  ansible.builtin.file:
+    path: '{{ espanso_config_checkout | dirname }}'
+    state: directory
+    mode: '0700'
+- name: Inspect existing private checkout
+  ansible.builtin.stat:
+    path: '{{ espanso_config_checkout }}/.git'
+    follow: false
+    get_checksum: false
+  register: espanso_git_dir
+- name: Reject redirected Git directories
+  ansible.builtin.assert:
+    that: not espanso_git_dir.stat.exists or (espanso_git_dir.stat.isdir and not espanso_git_dir.stat.islnk)
+- name: Check existing private checkout origin
+  ansible.builtin.command:
+    argv: [git, -C, '{{ espanso_config_checkout }}', remote, get-url, origin]
+  register: espanso_existing_origin
+  changed_when: false
+  no_log: true
+  check_mode: false
+  when: espanso_git_dir.stat.exists
+- name: Preserve an unrelated checkout
+  ansible.builtin.assert:
+    that: espanso_existing_origin.stdout == espanso_config_repo
+    fail_msg: Existing Espanso checkout has a different origin; move it or select its correct repository before rerunning.
+  when: espanso_git_dir.stat.exists
+- name: Inspect local private checkout changes
+  ansible.builtin.command:
+    argv: [git, -C, '{{ espanso_config_checkout }}', status, --porcelain, --untracked-files=all]
+  register: espanso_dirty
+  changed_when: false
+  no_log: true
+  check_mode: false
+  when: espanso_git_dir.stat.exists
+- name: Preserve locally edited private configuration
+  ansible.builtin.assert:
+    that: espanso_dirty.stdout == ''
+    fail_msg: Private Espanso checkout has local edits. Commit or move them before rerunning; nothing was discarded.
+  when: espanso_git_dir.stat.exists
+- name: Clone or update private Espanso configuration
+  ansible.builtin.git:
+    repo: '{{ espanso_config_repo }}'
+    dest: '{{ espanso_config_checkout }}'
+    version: '{{ espanso_config_branch }}'
+    key_file: '{{ github_ssh_private_key_path }}'
+    ssh_opts: '{{ github_ssh_options }}'
+    update: true
+    force: false
+    recursive: false
+    umask: '0077'
+  environment:
+    SSH_AUTH_SOCK: '{{ github_agent_socket }}'
+  register: espanso_private_git
+  diff: false
+- name: Restrict private checkout permissions
+  ansible.builtin.file:
+    path: '{{ espanso_config_checkout }}'
+    state: directory
+    mode: '0700'
+- name: Validate private match source before changing the Espanso link
+  ansible.builtin.command:
+    argv: [python3, '{{ playbook_dir }}/lib/github_ssh.py', file, --home, '{{ setup_home }}', --path, '{{ espanso_config_checkout }}/{{ espanso_config_base_relative_path }}']
+  changed_when: false
+  when: not ansible_check_mode
+- name: Select private configuration
+  ansible.builtin.set_fact:
+    espanso_base_source: '{{ espanso_config_checkout }}/{{ espanso_config_base_relative_path }}'

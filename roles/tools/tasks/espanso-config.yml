@@ -1,0 +1,56 @@
+- name: Validate Espanso configuration source
+  ansible.builtin.assert:
+    that: espanso_config_source in ['bundled', 'private_git']
+- name: Ensure GitHub prerequisites for direct tools role execution
+  ansible.builtin.include_role:
+    name: github_access
+    public: true
+  when: espanso_config_source == 'private_git' and not (github_access_ready | default(false) | bool)
+- name: Select bundled configuration
+  ansible.builtin.set_fact:
+    espanso_base_source: '{{ playbook_dir }}/files/espanso/base.yml'
+  when: espanso_config_source == 'bundled'
+- name: Prepare private configuration checkout
+  ansible.builtin.include_tasks: espanso-private.yml
+  when: espanso_config_source == 'private_git'
+- name: Validate Espanso match directory path
+  ansible.builtin.command:
+    argv: [python3, '{{ playbook_dir }}/lib/github_ssh.py', directory, --home, '{{ setup_home }}', --path, '{{ setup_home }}/.config/espanso/match']
+  changed_when: false
+  check_mode: false
+- name: Create Espanso match config directory
+  ansible.builtin.file:
+    path: '{{ setup_home }}/.config/espanso/match'
+    state: directory
+    mode: '0700'
+- name: Inspect Espanso match config
+  ansible.builtin.stat:
+    path: '{{ setup_home }}/.config/espanso/match/base.yml'
+    follow: false
+    get_checksum: false
+  register: espanso_match
+- name: Require a file or symlink at the managed match path
+  ansible.builtin.assert:
+    that: not espanso_match.stat.exists or espanso_match.stat.isreg or espanso_match.stat.islnk
+    fail_msg: Espanso base.yml is a directory or special file; resolve it manually.
+- name: Reserve a unique backup path for unrelated Espanso configuration
+  ansible.builtin.tempfile:
+    state: file
+    path: '{{ setup_home }}/.config/espanso/match'
+    prefix: 'base.yml.backup.{{ ansible_facts["date_time"]["iso8601_basic_short"] }}.'
+  register: espanso_backup
+  when: espanso_match.stat.exists and (not espanso_match.stat.islnk or espanso_match.stat.lnk_source | default('') != espanso_base_source)
+- name: Back up unrelated Espanso match config
+  ansible.builtin.command:
+    argv: [mv, -T, --, '{{ setup_home }}/.config/espanso/match/base.yml', '{{ espanso_backup.path }}']
+  when: espanso_backup is changed and not ansible_check_mode
+- name: Link selected Espanso match config
+  ansible.builtin.file:
+    src: '{{ espanso_base_source }}'
+    dest: '{{ setup_home }}/.config/espanso/match/base.yml'
+    state: link
+  register: espanso_link
+- name: Restart Espanso when its configuration changed
+  ansible.builtin.command: espanso restart
+  when: not ansible_check_mode and (espanso_link.changed or (espanso_private_git is defined and espanso_private_git.changed))
+  changed_when: true

@@ -1,0 +1,7 @@
+- name: Validate Espanso configuration selection
+  ansible.builtin.assert:
+    that: espanso_config_source in ['bundled', 'private_git']
+  when: install_espanso | bool
+- name: Prepare access for private Espanso configuration
+  ansible.builtin.include_tasks: private.yml
+  when: install_espanso | bool and espanso_config_source == 'private_git'

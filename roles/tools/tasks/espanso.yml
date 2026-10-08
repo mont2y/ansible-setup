@@ -36,27 +36,5 @@
   changed_when: false
   failed_when: false
   when: not ansible_check_mode
-- name: Create Espanso match config directory
-  ansible.builtin.file:
-    path: '{{ setup_home }}/.config/espanso/match'
-    state: directory
-    mode: '0755'
-- name: Inspect Espanso match config
-  ansible.builtin.stat:
-    path: '{{ setup_home }}/.config/espanso/match/base.yml'
-    follow: false
-  register: espanso_match
-- name: Back up unrelated Espanso match config
-  ansible.builtin.command:
-    argv: [mv, '{{ setup_home }}/.config/espanso/match/base.yml', '{{ setup_home }}/.config/espanso/match/base.yml.backup.{{ ansible_facts["date_time"]["iso8601_basic_short"] }}']
-  when: espanso_match.stat.exists and (not espanso_match.stat.islnk or espanso_match.stat.lnk_source | default('') != playbook_dir + '/files/espanso/base.yml')
-- name: Link Espanso match config
-  ansible.builtin.file:
-    src: '{{ playbook_dir }}/files/espanso/base.yml'
-    dest: '{{ setup_home }}/.config/espanso/match/base.yml'
-    state: link
-- name: Restart Espanso when config changed
-  ansible.builtin.command: espanso restart
-  when: not ansible_check_mode
-  changed_when: false
-  failed_when: false
+- name: Configure Espanso match file
+  ansible.builtin.include_tasks: espanso-config.yml
